@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  readarr-m4b:
+    build: .
+    container_name: readarr-m4b
+    volumes:
+      # Mount audiobooks directory (same as Readarr)
+      - /path/to/your/audiobooks:/data/audiobooks
+      # Mount logs directory
+      - ./logs:/var/log
+      # Mount config for customization
+      - ./config:/app/config
+    ports:
+      - "8080:8080"  # Webhook port
+    environment:
+      - PYTHONUNBUFFERED=1
+      - WEBHOOK_PORT=8080
+    restart: unless-stopped
+
+# Example usage:
+# 1. Update the audiobooks volume path above to match your Readarr setup
+# 2. Update config/config.yaml with your settings  
+# 3. Run: docker-compose up -d
+# 4. Place wrapper script in your Readarr scripts folder
+# 5. Configure Readarr to call the wrapper script 

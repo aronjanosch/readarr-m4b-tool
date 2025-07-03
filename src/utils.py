@@ -63,7 +63,7 @@ def sanitize_filename(filename: str) -> str:
     """
     # Characters that are problematic in filenames
     replacements = {
-        ':': ' -',
+        ':': ' - ',
         '/': '-',
         '\\': '-',
         '<': '',

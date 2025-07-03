@@ -3,65 +3,99 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Automatic audiobook converter for Readarr**
+**Unified audiobook converter for Readarr**
 
-Seamlessly converts MP3 audiobooks to M4B format with proper chapters when Readarr downloads them. Built as a simple, efficient Python script that integrates directly with Readarr's custom script functionality.
+Seamlessly converts MP3 audiobooks to M4B format with proper chapters when Readarr downloads them. Supports both HTTP API and CLI modes in a single, clean application.
 
 ## Features
 
-✅ **Direct Readarr Integration** - Works as a custom script in Readarr  
+✅ **Unified Application** - Single script for both CLI and HTTP server modes  
+✅ **Direct Readarr Integration** - Works as custom script or HTTP endpoint  
 ✅ **Automatic Conversion** - MP3 → M4B with proper chapters  
 ✅ **Smart Chapter Detection** - Uses filenames and silence detection  
 ✅ **Configurable** - YAML configuration for all settings  
-✅ **Robust Error Handling** - Comprehensive logging and recovery  
-✅ **Test Mode Support** - Compatible with Readarr's test function  
+✅ **Container Ready** - Docker support with clean architecture  
+✅ **Tested** - Comprehensive test suite included  
 
 ## Quick Start
 
 ### 1. Installation
 
 ```bash
-git clone https://github.com/yourusername/readarr-m4b-tool.git
+git clone https://github.com/aronjanosch/readarr-m4b-tool.git
 cd readarr-m4b-tool
 pip install -r requirements.txt
 ```
 
 ### 2. Configuration
 
-Edit `config/config.yaml` and set your audiobook path:
-
+Edit `config/config.yaml`:
 ```yaml
 paths:
   audiobooks: "/path/to/your/audiobooks"  # Update this path
 ```
 
-### 3. Readarr Setup
+### 3. Usage Modes
 
-In Readarr: **Settings → Connect → Add Custom Script**
+**HTTP Server Mode (Recommended for containers):**
+```bash
+python src/main.py --server    # or just: python src/main.py
+```
 
-- **Name**: ReadarrM4B
+**CLI Mode:**
+```bash
+# Convert specific audiobook
+python src/main.py --convert "/path/to/audiobook"
+
+# Test configuration
+python src/main.py --test
+
+# Called by Readarr (uses environment variables)
+python src/main.py
+```
+
+### 4. Readarr Setup
+
+**Option A: Direct CLI (Simple)**
 - **Path**: `/path/to/readarr-m4b-tool/src/main.py`
 - **Arguments**: *(leave empty)*
-- **Triggers**: ✅ On Import
 
-### 4. Test
+**Option B: HTTP API (Container-friendly)**
+- Run: `python src/main.py --server`
+- Use wrapper script: `scripts/readarr-wrapper.sh`
 
-Click "Test" in Readarr to verify the setup works.
+## Container Setup
 
-## How It Works
+**Quick Docker deployment:**
 
+```bash
+# 1. Update config and docker-compose.yml paths
+# 2. Start container
+docker-compose up -d
+
+# 3. Copy wrapper script to Readarr
+cp scripts/readarr-wrapper.sh /opt/script/readarr/
 ```
-Readarr Download Complete → ReadarrM4B → M4B Conversion → Cleanup
+
+📖 **[Complete Container Setup Guide](SETUP_GUIDE.md)**
+
+## Testing
+
+Run the test suite:
+```bash
+python tests/run_tests.py
 ```
 
-1. **Readarr** downloads audiobook (MP3 files)
-2. **ReadarrM4B** detects the completion and starts conversion
-3. **m4b-tool** merges files with chapter detection
-4. **Original MP3s** are cleaned up (configurable)
+Or run individual tests:
+```bash
+python tests/test_main.py
+python tests/test_config.py
+python tests/test_utils.py
+```
 
 ## Configuration
 
-All settings are in `config/config.yaml`:
+All settings in `config/config.yaml`:
 
 ```yaml
 paths:
@@ -77,17 +111,7 @@ conversion:
 
 logging:
   level: "INFO"
-  file: "/var/log/readarr-m4b.log"
-```
-
-## Manual Usage
-
-```bash
-# Convert specific audiobook
-python src/main.py --convert "/path/to/audiobook"
-
-# Test configuration
-python src/main.py --test
+  file: "./readarr-m4b.log"
 ```
 
 ## Requirements
@@ -96,33 +120,47 @@ python src/main.py --test
 - **[m4b-tool](https://github.com/sandreas/m4b-tool)** - The core conversion engine
 - **ffmpeg** - Audio processing (required by m4b-tool)
 
-## Docker Support
-
-```bash
-# Build image
-docker build -t readarr-m4b .
-
-# Run with docker-compose
-docker-compose up -d
-```
-
 ## Troubleshooting
 
 ### Check Logs
 ```bash
-tail -f /var/log/readarr-m4b.log
+tail -f readarr-m4b.log
+```
+
+### Test HTTP API
+```bash
+curl -X POST http://localhost:8080 \
+  -H "Content-Type: application/json" \
+  -d '{"author_name":"Test","book_title":"Test","event_type":"Test"}'
 ```
 
 ### Common Issues
 
-**"No valid Readarr information found"**
-- Ensure the script is triggered by Readarr with proper environment variables
+**"Configuration is invalid"**
+- Check audiobooks path exists and is writable
+- Run: `python src/main.py --test`
 
 **"m4b-tool not found"**
-- Install m4b-tool and ensure it's in your PATH
+- Install m4b-tool and ensure it's in PATH
 
 **"Permission denied"**
-- Make sure the script is executable: `chmod +x src/main.py`
+- Make script executable: `chmod +x src/main.py`
+
+## Project Structure
+
+```
+readarr-m4b-tool/
+├── src/
+│   ├── main.py          # Unified CLI + HTTP server
+│   ├── config.py        # Configuration management
+│   ├── converter.py     # M4B conversion logic
+│   └── utils.py         # Utilities
+├── tests/               # Test suite
+├── scripts/             # Helper scripts
+├── config/              # Configuration files
+├── Dockerfile           # Container image
+└── docker-compose.yml   # Container orchestration
+```
 
 ## Contributing
 
