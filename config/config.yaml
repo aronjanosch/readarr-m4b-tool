@@ -1,0 +1,27 @@
+# ReadarrM4B Configuration
+# Replace the hard-coded paths from your bash scripts
+
+paths:
+  # Where Readarr stores your audiobooks (UPDATE THIS PATH)
+  audiobooks: "/data/audiobooks"
+  
+  # Temporary directory for m4b-tool processing
+  temp_dir: "/tmp/readarr-m4b"
+
+conversion:
+  # m4b-tool settings (from your current convert_to_m4b.sh)
+  audio_codec: "libfdk_aac"
+  jobs: 4
+  use_filenames_as_chapters: true
+  no_chapter_reindexing: true
+  skip_cover: false
+  
+  # Wait time before processing (to ensure download is complete)
+  stability_wait_seconds: 30
+  
+  # Clean up original MP3 files after successful conversion
+  cleanup_originals: true
+
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  file: "./readarr-m4b.log"  # Relative path for easier setup 
