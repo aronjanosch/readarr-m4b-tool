@@ -22,7 +22,7 @@ This solution uses a **clean container architecture** that doesn't pollute your 
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/readarr-m4b-tool.git
+git clone https://github.com/aronjanosch/readarr-m4b-tool.git
 cd readarr-m4b-tool
 
 # Edit configuration
