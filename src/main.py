@@ -85,7 +85,14 @@ class WebhookHandler(BaseHTTPRequestHandler):
             }
             
             self.server.webhook_logger.info(f"Queueing conversion for directory: {book_directory}")
-            asyncio.create_task(self._convert_audiobook(metadata))
+            
+            # Schedule the conversion task in the main event loop
+            import threading
+            if hasattr(self.server, '_event_loop') and self.server._event_loop:
+                asyncio.run_coroutine_threadsafe(self._convert_audiobook(metadata), self.server._event_loop)
+            else:
+                self.server.webhook_logger.error("No event loop available for conversion task")
+            
             self._send_json_response(202, {'status': 'accepted', 'message': 'Conversion queued'})
             
         except Exception as e:
@@ -126,11 +133,12 @@ class WebhookHandler(BaseHTTPRequestHandler):
 class ReadarrM4BServer(HTTPServer):
     """HTTP server with configuration and converter"""
     
-    def __init__(self, server_address, handler_class, config: Config):
+    def __init__(self, server_address, handler_class, config: Config, event_loop=None):
         super().__init__(server_address, handler_class)
         self.config = config
         self.converter = M4BConverter(config)
         self.logger = logging.getLogger(__name__)
+        self._event_loop = event_loop
         
         # Setup dedicated webhook logger
         self.webhook_logger = logging.getLogger('webhook')
@@ -146,7 +154,10 @@ async def run_server(config: Config):
     """Run HTTP server mode"""
     logger = logging.getLogger(__name__)
     
-    server = ReadarrM4BServer((config.webhook_host, config.webhook_port), WebhookHandler, config)
+    # Get current event loop
+    loop = asyncio.get_event_loop()
+    
+    server = ReadarrM4BServer((config.webhook_host, config.webhook_port), WebhookHandler, config, loop)
     logger.info(f"🚀 ReadarrM4B HTTP server started on {config.webhook_host}:{config.webhook_port}")
     
     try:
