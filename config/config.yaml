@@ -2,8 +2,8 @@
 # Replace the hard-coded paths from your bash scripts
 
 paths:
-  # Where Readarr stores your audiobooks (UPDATE THIS PATH)
-  audiobooks: "/mnt/unionfs/Media/Audiobooks"
+  # Where Readarr stores your audiobooks (mounted in container)
+  audiobooks: "/data/audiobooks"
   
   # Temporary directory for m4b-tool processing
   temp_dir: "/tmp/readarr-m4b"
@@ -28,7 +28,7 @@ logging:
 
 webhook:
   # HTTP server settings for receiving Readarr webhooks
-  port: 8183
+  port: 8080
   host: "0.0.0.0"  # Listen on all interfaces
   log_file: "./webhook_requests.log"  # Webhook request log file
   json_file: "./webhook_received.json"  # Latest webhook JSON
