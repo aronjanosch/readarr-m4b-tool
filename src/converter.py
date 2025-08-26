@@ -46,6 +46,7 @@ class M4BConverter:
             return False
         
         # Wait for file stability (ensure download is complete)
+        self.logger.info(f"Checking file stability for {len(mp3_files)} MP3 files...")
         if not await self._wait_for_stability(book_path):
             self.logger.error("Files not stable, conversion aborted")
             return False
@@ -55,6 +56,7 @@ class M4BConverter:
         output_path = book_path / output_filename
         
         # Run conversion
+        self.logger.info(f"Starting m4b-tool conversion: {output_filename}")
         success = await self._run_m4b_tool(book_path, output_path)
         
         if success:
@@ -160,21 +162,33 @@ class M4BConverter:
         self.logger.info(f"Running: {' '.join(cmd)}")
         
         try:
-            # Run the command
+            # Run the command with real-time output
             process = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,  # Merge stderr into stdout
                 cwd=source_path
             )
             
-            stdout, stderr = await process.communicate()
+            # Stream output in real-time
+            stdout_lines = []
+            while True:
+                line = await process.stdout.readline()
+                if not line:
+                    break
+                    
+                line_text = line.decode().strip()
+                if line_text:
+                    stdout_lines.append(line_text)
+                    # Log progress lines that show actual progress
+                    if any(keyword in line_text.lower() for keyword in ['progress', '%', 'encoding', 'merging', 'chapter', 'processing']):
+                        self.logger.info(f"m4b-tool: {line_text}")
             
-            # Always log output for debugging
-            if stdout:
-                self.logger.info(f"m4b-tool stdout: {stdout.decode()}")
-            if stderr:
-                self.logger.info(f"m4b-tool stderr: {stderr.decode()}")
+            await process.wait()
+            
+            # Log full output for debugging
+            if stdout_lines:
+                self.logger.debug(f"m4b-tool full output: {chr(10).join(stdout_lines)}")
             
             # Check if output file was actually created
             if process.returncode == 0:
