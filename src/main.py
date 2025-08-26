@@ -42,7 +42,6 @@ class WebhookHandler(BaseHTTPRequestHandler):
                 json.dump(data, f, indent=2)
             
             self.server.webhook_logger.info(f"Full webhook data saved to: {webhook_json_file}")
-            self.server.webhook_logger.info(f"Webhook data: {json.dumps(data, indent=2)}")
             
             # Extract data from Readarr webhook format
             author_data = data.get('author', {})
@@ -85,6 +84,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
                 'is_test': False
             }
             
+            self.server.webhook_logger.info(f"Queueing conversion for directory: {book_directory}")
             asyncio.create_task(self._convert_audiobook(metadata))
             self._send_json_response(202, {'status': 'accepted', 'message': 'Conversion queued'})
             
@@ -108,14 +108,15 @@ class WebhookHandler(BaseHTTPRequestHandler):
         """Convert audiobook asynchronously"""
         try:
             book_path = Path(metadata['book_directory'])
+            self.server.webhook_logger.info(f"Starting conversion for: {book_path}")
             success = await self.server.converter.convert_audiobook(book_path, metadata)
             
             if success:
-                self.server.logger.info(f"✅ Conversion completed: {book_path}")
+                self.server.webhook_logger.info(f"✅ Conversion completed: {book_path}")
             else:
-                self.server.logger.error(f"❌ Conversion failed: {book_path}")
+                self.server.webhook_logger.error(f"❌ Conversion failed: {book_path}")
         except Exception as e:
-            self.server.logger.error(f"Conversion error: {e}")
+            self.server.webhook_logger.error(f"Conversion error: {e}")
     
     def log_message(self, format, *args):
         """Override to use our logger"""
