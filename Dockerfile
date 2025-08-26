@@ -60,11 +60,8 @@ RUN mkdir -p /var/log /tmp/readarr-m4b
 # Make main script executable
 RUN chmod +x /app/src/main.py
 
-# Copy entrypoint script
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
 # Expose webhook port
 EXPOSE 8080
 
-ENTRYPOINT ["/entrypoint.sh"] 
+# Default to server mode
+CMD ["python", "/app/src/main.py", "--server"] 
