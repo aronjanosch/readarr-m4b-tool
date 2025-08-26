@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   readarr-m4b:
     build: .
@@ -12,14 +10,7 @@ services:
       # Mount logs directory for persistence
       - ./logs:/app/logs
     ports:
-      - "8080:8080"  # Webhook port
+      - "8080:8080" # Webhook port
     environment:
       - PYTHONUNBUFFERED=1
     restart: unless-stopped
-
-# Example usage:
-# 1. Update the audiobooks volume path above to match your Readarr setup
-# 2. Update config/config.yaml with your settings if needed
-# 3. Run: docker-compose up -d
-# 4. Configure Readarr webhook to point to http://your-host:8080
-# 5. Test with: curl -X POST http://localhost:8080 -H "Content-Type: application/json" -d @webhook_received.json 
