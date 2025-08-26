@@ -28,17 +28,21 @@ class WebhookHandler(BaseHTTPRequestHandler):
             post_data = self.rfile.read(content_length)
             data = json.loads(post_data.decode('utf-8'))
             
-            # Log full webhook data for debugging and testing
-            webhook_log_file = Path("webhook_received.json")
-            with open(webhook_log_file, "w") as f:
+            # Log full request to dedicated webhook log file
+            webhook_log_file = Path(self.server.config.webhook_log_file)
+            with open(webhook_log_file, "a") as f:
+                f.write(f"\n=== WEBHOOK RECEIVED {self._get_timestamp()} ===\n")
+                f.write(f"Headers: {dict(self.headers)}\n")
+                f.write(f"Data: {json.dumps(data, indent=2)}\n")
+                f.write("=" * 50 + "\n")
+            
+            # Also save JSON for debugging
+            webhook_json_file = Path(self.server.config.webhook_json_file)
+            with open(webhook_json_file, "w") as f:
                 json.dump(data, f, indent=2)
             
-            print("=== WEBHOOK RECEIVED ===")
-            print(json.dumps(data, indent=2))
-            print("========================")
-            
-            self.server.logger.info(f"Full webhook data saved to: {webhook_log_file}")
-            self.server.logger.debug(f"Webhook data: {json.dumps(data, indent=2)}")
+            self.server.webhook_logger.info(f"Full webhook data saved to: {webhook_json_file}")
+            self.server.webhook_logger.info(f"Webhook data: {json.dumps(data, indent=2)}")
             
             # Extract data from Readarr webhook format
             author_data = data.get('author', {})
@@ -49,7 +53,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
             author_path = author_data.get('path')
             book_title = books_data[0].get('title') if books_data else None
             
-            self.server.logger.info(f"Received webhook - Author: {author_name}, Book: {book_title}, Event: {event_type}")
+            self.server.webhook_logger.info(f"Received webhook - Author: {author_name}, Book: {book_title}, Event: {event_type}")
             
             # Handle test events
             if event_type == 'Test':
@@ -72,8 +76,13 @@ class WebhookHandler(BaseHTTPRequestHandler):
             self._send_json_response(202, {'status': 'accepted', 'message': 'Conversion queued'})
             
         except Exception as e:
-            self.server.logger.error(f"Request error: {e}")
+            self.server.webhook_logger.error(f"Request error: {e}")
             self._send_json_response(500, {'error': str(e)})
+    
+    def _get_timestamp(self):
+        """Get current timestamp"""
+        import datetime
+        return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     def _send_json_response(self, status_code: int, data: dict):
         """Send JSON response"""
@@ -108,6 +117,13 @@ class ReadarrM4BServer(HTTPServer):
         self.config = config
         self.converter = M4BConverter(config)
         self.logger = logging.getLogger(__name__)
+        
+        # Setup dedicated webhook logger
+        self.webhook_logger = logging.getLogger('webhook')
+        webhook_handler = logging.FileHandler(config.webhook_log_file)
+        webhook_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        self.webhook_logger.addHandler(webhook_handler)
+        self.webhook_logger.setLevel(logging.INFO)
 
 
 

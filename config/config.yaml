@@ -3,7 +3,7 @@
 
 paths:
   # Where Readarr stores your audiobooks (UPDATE THIS PATH)
-  audiobooks: "/data/audiobooks"
+  audiobooks: "/mnt/unionfs/Media/Audiobooks"
   
   # Temporary directory for m4b-tool processing
   temp_dir: "/tmp/readarr-m4b"
@@ -28,5 +28,7 @@ logging:
 
 webhook:
   # HTTP server settings for receiving Readarr webhooks
-  port: 8080
-  host: "0.0.0.0"  # Listen on all interfaces 
+  port: 8183
+  host: "0.0.0.0"  # Listen on all interfaces
+  log_file: "./webhook_requests.log"  # Webhook request log file
+  json_file: "./webhook_received.json"  # Latest webhook JSON

@@ -46,6 +46,8 @@ class Config:
         webhook = config.get('webhook', {})
         self.webhook_port = webhook.get('port', 8080)
         self.webhook_host = webhook.get('host', '0.0.0.0')
+        self.webhook_log_file = os.path.expandvars(webhook.get('log_file', './webhook_requests.log'))
+        self.webhook_json_file = os.path.expandvars(webhook.get('json_file', './webhook_received.json'))
     
     def validate(self):
         """Validate configuration"""
