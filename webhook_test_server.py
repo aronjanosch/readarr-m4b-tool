@@ -99,7 +99,6 @@ def main():
     
     print(f"Starting Readarr webhook test server on port {port}")
     print(f"Webhook data will be logged to: {log_file.absolute()}")
-    print("Configure Readarr webhook to point to: http://your-server:8080")
     print("Press Ctrl+C to stop\n")
     
     server = HTTPServer(('0.0.0.0', port), WebhookTestHandler)

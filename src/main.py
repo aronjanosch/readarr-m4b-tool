@@ -28,11 +28,19 @@ class WebhookHandler(BaseHTTPRequestHandler):
             post_data = self.rfile.read(content_length)
             data = json.loads(post_data.decode('utf-8'))
             
-            author_name = data.get('author_name')
-            book_title = data.get('book_title')
-            event_type = data.get('event_type', 'Import')
+            # Log full webhook data for debugging
+            self.server.logger.debug(f"Webhook data: {json.dumps(data, indent=2)}")
             
-            self.server.logger.info(f"Received: {author_name} - {book_title}")
+            # Extract data from Readarr webhook format
+            author_data = data.get('author', {})
+            books_data = data.get('books', [])
+            event_type = data.get('eventType', 'Import')
+            
+            author_name = author_data.get('name')
+            author_path = author_data.get('path')
+            book_title = books_data[0].get('title') if books_data else None
+            
+            self.server.logger.info(f"Received webhook - Author: {author_name}, Book: {book_title}, Event: {event_type}")
             
             # Handle test events
             if event_type == 'Test':
@@ -40,14 +48,14 @@ class WebhookHandler(BaseHTTPRequestHandler):
                 return
             
             if not author_name or not book_title:
-                self._send_json_response(400, {'error': 'Missing author_name or book_title'})
+                self._send_json_response(400, {'error': 'Missing author name or book title in webhook'})
                 return
             
             # Queue conversion
             metadata = {
                 'author_name': author_name,
                 'book_title': book_title,
-                'author_path': data.get('author_path'),
+                'author_path': author_path,
                 'is_test': False
             }
             
