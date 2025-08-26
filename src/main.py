@@ -150,7 +150,15 @@ async def run_server(config: Config):
     logger.info(f"🚀 ReadarrM4B HTTP server started on {config.webhook_host}:{config.webhook_port}")
     
     try:
-        server.serve_forever()
+        # Run server in a thread to not block the asyncio event loop
+        import threading
+        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread.daemon = True
+        server_thread.start()
+        
+        # Keep the main coroutine running
+        while True:
+            await asyncio.sleep(1)
     except KeyboardInterrupt:
         logger.info("Server stopped")
         server.server_close()
