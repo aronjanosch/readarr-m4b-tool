@@ -20,7 +20,7 @@ conversion:
   stability_wait_seconds: 30
   
   # Clean up original MP3 files after successful conversion
-  cleanup_originals: true
+  cleanup_originals: false
 
 logging:
   level: "INFO"  # DEBUG, INFO, WARNING, ERROR

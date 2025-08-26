@@ -146,7 +146,7 @@ class M4BConverter:
             self.logger.error("m4b-tool not found in PATH")
             return False
         
-        # Build command
+        # Build command with proper path handling
         cmd = [
             "m4b-tool",
             "merge",
@@ -170,15 +170,22 @@ class M4BConverter:
             
             stdout, stderr = await process.communicate()
             
+            # Always log output for debugging
+            if stdout:
+                self.logger.info(f"m4b-tool stdout: {stdout.decode()}")
+            if stderr:
+                self.logger.info(f"m4b-tool stderr: {stderr.decode()}")
+            
+            # Check if output file was actually created
             if process.returncode == 0:
-                self.logger.info("m4b-tool completed successfully")
-                if stdout:
-                    self.logger.debug(f"m4b-tool stdout: {stdout.decode()}")
-                return True
+                if output_path.exists():
+                    self.logger.info(f"m4b-tool completed successfully - output file created: {output_path}")
+                    return True
+                else:
+                    self.logger.error(f"m4b-tool reported success but output file not found: {output_path}")
+                    return False
             else:
                 self.logger.error(f"m4b-tool failed with return code {process.returncode}")
-                if stderr:
-                    self.logger.error(f"m4b-tool stderr: {stderr.decode()}")
                 return False
                 
         except Exception as e:

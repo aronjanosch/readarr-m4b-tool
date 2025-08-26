@@ -28,7 +28,16 @@ class WebhookHandler(BaseHTTPRequestHandler):
             post_data = self.rfile.read(content_length)
             data = json.loads(post_data.decode('utf-8'))
             
-            # Log full webhook data for debugging
+            # Log full webhook data for debugging and testing
+            webhook_log_file = Path("webhook_received.json")
+            with open(webhook_log_file, "w") as f:
+                json.dump(data, f, indent=2)
+            
+            print("=== WEBHOOK RECEIVED ===")
+            print(json.dumps(data, indent=2))
+            print("========================")
+            
+            self.server.logger.info(f"Full webhook data saved to: {webhook_log_file}")
             self.server.logger.debug(f"Webhook data: {json.dumps(data, indent=2)}")
             
             # Extract data from Readarr webhook format
