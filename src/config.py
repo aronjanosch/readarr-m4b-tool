@@ -1,127 +1,90 @@
-"""Configuration management for ReadarrM4B"""
+"""Simple configuration management for ReadarrM4B"""
 
 import os
 import yaml
 from pathlib import Path
-from typing import Dict, Any, Optional
-from dataclasses import dataclass
-
-
-@dataclass
-class PathConfig:
-    """Path configuration"""
-    audiobooks: str
-    temp_dir: str = "/tmp/readarr-m4b"
-    
-    def __post_init__(self):
-        """Expand environment variables in paths"""
-        self.audiobooks = os.path.expandvars(self.audiobooks)
-        self.temp_dir = os.path.expandvars(self.temp_dir)
-
-
-@dataclass
-class ConversionConfig:
-    """Conversion settings"""
-    audio_codec: str = "libfdk_aac"
-    jobs: int = 4
-    use_filenames_as_chapters: bool = True
-    no_chapter_reindexing: bool = True
-    skip_cover: bool = False
-    stability_wait_seconds: int = 30
-    cleanup_originals: bool = True
-
-
-@dataclass
-class LoggingConfig:
-    """Logging configuration"""
-    level: str = "INFO"
-    file: str = "/var/log/readarr-m4b.log"
-    
-    def __post_init__(self):
-        """Expand environment variables in file path"""
-        self.file = os.path.expandvars(self.file)
 
 
 class Config:
-    """Main configuration class"""
+    """Simple configuration class"""
     
-    def __init__(self, config_file: Optional[str] = None):
+    def __init__(self, config_file=None):
         if config_file is None:
-            # Default config file location
             config_file = Path(__file__).parent.parent / "config" / "config.yaml"
         
         self.config_file = Path(config_file)
         self._load_config()
     
-    def _load_config(self) -> None:
+    def _load_config(self):
         """Load configuration from YAML file"""
         if not self.config_file.exists():
             raise FileNotFoundError(f"Configuration file not found: {self.config_file}")
         
         with open(self.config_file, 'r') as f:
-            config_data = yaml.safe_load(f)
+            config = yaml.safe_load(f)
         
-        # Load configuration sections
-        self.paths = PathConfig(**config_data.get('paths', {}))
-        self.conversion = ConversionConfig(**config_data.get('conversion', {}))
-        self.logging = LoggingConfig(**config_data.get('logging', {}))
+        # Paths
+        self.audiobooks_path = os.path.expandvars(config['paths']['audiobooks'])
+        self.temp_dir = os.path.expandvars(config['paths'].get('temp_dir', '/tmp/readarr-m4b'))
+        
+        # Conversion settings
+        conversion = config.get('conversion', {})
+        self.audio_codec = conversion.get('audio_codec', 'libfdk_aac')
+        self.jobs = conversion.get('jobs', 4)
+        self.use_filenames_as_chapters = conversion.get('use_filenames_as_chapters', True)
+        self.no_chapter_reindexing = conversion.get('no_chapter_reindexing', True)
+        self.skip_cover = conversion.get('skip_cover', False)
+        self.stability_wait_seconds = conversion.get('stability_wait_seconds', 30)
+        self.cleanup_originals = conversion.get('cleanup_originals', True)
+        
+        # Logging
+        logging = config.get('logging', {})
+        self.log_level = logging.get('level', 'INFO')
+        self.log_file = os.path.expandvars(logging.get('file', './readarr-m4b.log'))
+        
+        # Webhook
+        webhook = config.get('webhook', {})
+        self.webhook_port = webhook.get('port', 8080)
+        self.webhook_host = webhook.get('host', '0.0.0.0')
     
-    def validate(self) -> bool:
+    def validate(self):
         """Validate configuration"""
         errors = []
         
-        # Check if audiobooks path exists
-        audiobooks_path = Path(self.paths.audiobooks)
-        if not audiobooks_path.exists():
-            errors.append(f"Audiobooks directory does not exist: {self.paths.audiobooks}")
+        # Check audiobooks path
+        if not Path(self.audiobooks_path).exists():
+            errors.append(f"Audiobooks directory does not exist: {self.audiobooks_path}")
         
-        # Check if audiobooks path is writable
-        if audiobooks_path.exists() and not os.access(audiobooks_path, os.W_OK):
-            errors.append(f"Audiobooks directory is not writable: {self.paths.audiobooks}")
+        # Create temp directory if needed
+        Path(self.temp_dir).mkdir(parents=True, exist_ok=True)
         
-        # Check temp directory
-        temp_path = Path(self.paths.temp_dir)
-        try:
-            temp_path.mkdir(parents=True, exist_ok=True)
-        except PermissionError:
-            errors.append(f"Cannot create temp directory: {self.paths.temp_dir}")
-        
-        # Validate logging configuration
-        if self.logging.level not in ["DEBUG", "INFO", "WARNING", "ERROR"]:
-            errors.append(f"Invalid logging level: {self.logging.level}")
-        
-        # Check if log directory is writable
-        log_file = Path(self.logging.file)
-        log_dir = log_file.parent
-        if not log_dir.exists():
-            try:
-                log_dir.mkdir(parents=True, exist_ok=True)
-            except PermissionError:
-                errors.append(f"Cannot create log directory: {log_dir}")
+        # Check log level
+        if self.log_level not in ["DEBUG", "INFO", "WARNING", "ERROR"]:
+            errors.append(f"Invalid logging level: {self.log_level}")
         
         if errors:
             for error in errors:
                 print(f"Configuration error: {error}")
             return False
         
+        print("✅ Configuration is valid")
         return True
     
-    def get_m4b_tool_args(self) -> list:
-        """Get m4b-tool command arguments from configuration"""
+    def get_m4b_tool_args(self):
+        """Get m4b-tool command arguments"""
         args = [
-            "--audio-codec", self.conversion.audio_codec,
-            "--jobs", str(self.conversion.jobs),
-            "-n",  # no interaction
-            "-v"   # verbose
+            "--audio-codec", self.audio_codec,
+            "--jobs", str(self.jobs),
+            "-n", "-v"  # no interaction, verbose
         ]
         
-        if self.conversion.use_filenames_as_chapters:
+        if self.use_filenames_as_chapters:
             args.append("--use-filenames-as-chapters")
         
-        if self.conversion.no_chapter_reindexing:
+        if self.no_chapter_reindexing:
             args.append("--no-chapter-reindexing")
         
-        if self.conversion.skip_cover:
+        if self.skip_cover:
             args.append("--skip-cover")
         
-        return args 
+        return args

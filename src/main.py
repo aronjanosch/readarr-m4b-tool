@@ -76,7 +76,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
     async def _convert_audiobook(self, metadata: dict):
         """Convert audiobook asynchronously"""
         try:
-            book_path = Path(self.server.config.paths.audiobooks) / metadata['author_name'] / metadata['book_title']
+            book_path = Path(self.server.config.audiobooks_path) / metadata['author_name'] / metadata['book_title']
             success = await self.server.converter.convert_audiobook(book_path, metadata)
             
             if success:
@@ -101,34 +101,14 @@ class ReadarrM4BServer(HTTPServer):
         self.logger = logging.getLogger(__name__)
 
 
-def get_readarr_info() -> Optional[dict]:
-    """Extract audiobook info from Readarr environment variables"""
-    author_name = os.getenv('readarr_author_name')
-    book_title = os.getenv('readarr_book_title')
-    author_path = os.getenv('readarr_author_path')
-    event_type = os.getenv('readarr_eventtype', 'Import')
-    
-    if event_type == 'Test':
-        return {'author_name': 'Test Author', 'book_title': 'Test Book', 'is_test': True}
-    
-    if not author_name or not book_title:
-        return None
-        
-    return {
-        'author_name': author_name,
-        'book_title': book_title,
-        'author_path': author_path,
-        'is_test': False
-    }
 
 
 async def run_server(config: Config):
     """Run HTTP server mode"""
     logger = logging.getLogger(__name__)
-    port = int(os.getenv('WEBHOOK_PORT', 8080))
     
-    server = ReadarrM4BServer(('0.0.0.0', port), WebhookHandler, config)
-    logger.info(f"🚀 ReadarrM4B HTTP server started on port {port}")
+    server = ReadarrM4BServer((config.webhook_host, config.webhook_port), WebhookHandler, config)
+    logger.info(f"🚀 ReadarrM4B HTTP server started on {config.webhook_host}:{config.webhook_port}")
     
     try:
         server.serve_forever()
@@ -138,7 +118,7 @@ async def run_server(config: Config):
 
 
 async def run_cli(config: Config, args: list):
-    """Run CLI mode"""
+    """Run CLI mode for testing and manual conversion"""
     logger = logging.getLogger(__name__)
     converter = M4BConverter(config)
     
@@ -163,34 +143,22 @@ async def run_cli(config: Config, args: list):
         return config.validate()
     
     else:
-        # Readarr mode (environment variables)
-        readarr_info = get_readarr_info()
-        if not readarr_info:
-            logger.error("No valid Readarr information found")
-            return False
-            
-        if readarr_info['is_test']:
-            logger.info("Readarr test event - OK")
-            return True
-            
-        book_path = Path(config.paths.audiobooks) / readarr_info['author_name'] / readarr_info['book_title']
-        logger.info(f"Processing: {readarr_info['author_name']} - {readarr_info['book_title']}")
-        
-        return await converter.convert_audiobook(book_path, readarr_info)
+        logger.error("Invalid CLI usage. Use --server for webhook mode, --test for config validation, or --convert <path> for manual conversion.")
+        return False
 
 
 async def main():
-    """Main entry point - unified CLI and HTTP server"""
+    """Main entry point - webhook server focused"""
     config = Config()
-    setup_logging(config.logging.level, config.logging.file)
+    setup_logging(config.log_level, config.log_file)
     logger = logging.getLogger(__name__)
     
     # Determine mode
     if '--server' in sys.argv or len(sys.argv) == 1:
-        # HTTP server mode (default)
+        # HTTP server mode (default - webhook focused)
         await run_server(config)
     else:
-        # CLI mode
+        # CLI mode (testing and manual conversion only)
         success = await run_cli(config, sys.argv)
         sys.exit(0 if success else 1)
 

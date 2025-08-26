@@ -59,7 +59,7 @@ class M4BConverter:
         
         if success:
             # Cleanup original files if configured
-            if self.config.conversion.cleanup_originals:
+            if self.config.cleanup_originals:
                 self._cleanup_originals(book_path, mp3_files)
             
             self.logger.info(f"Conversion completed successfully: {output_filename}")
@@ -79,7 +79,7 @@ class M4BConverter:
         Returns:
             True if files are stable, False if timeout
         """
-        wait_time = self.config.conversion.stability_wait_seconds
+        wait_time = self.config.stability_wait_seconds
         self.logger.info(f"Waiting {wait_time} seconds for file stability...")
         
         # Get initial file info

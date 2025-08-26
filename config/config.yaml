@@ -24,4 +24,9 @@ conversion:
 
 logging:
   level: "INFO"  # DEBUG, INFO, WARNING, ERROR
-  file: "./readarr-m4b.log"  # Relative path for easier setup 
+  file: "./readarr-m4b.log"  # Relative path for easier setup
+
+webhook:
+  # HTTP server settings for receiving Readarr webhooks
+  port: 8080
+  host: "0.0.0.0"  # Listen on all interfaces 
