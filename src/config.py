@@ -29,7 +29,7 @@ class Config:
         
         # Conversion settings
         conversion = config.get('conversion', {})
-        self.audio_codec = conversion.get('audio_codec', 'libfdk_aac')
+        self.audio_codec = conversion.get('audio_codec', None)  # Use m4b-tool default
         self.jobs = conversion.get('jobs', 4)
         self.use_filenames_as_chapters = conversion.get('use_filenames_as_chapters', True)
         self.no_chapter_reindexing = conversion.get('no_chapter_reindexing', True)
@@ -73,10 +73,13 @@ class Config:
     def get_m4b_tool_args(self):
         """Get m4b-tool command arguments"""
         args = [
-            "--audio-codec", self.audio_codec,
             "--jobs", str(self.jobs),
             "-n", "-v"  # no interaction, verbose
         ]
+        
+        # Only add audio codec if specified
+        if self.audio_codec:
+            args.extend(["--audio-codec", self.audio_codec])
         
         if self.use_filenames_as_chapters:
             args.append("--use-filenames-as-chapters")

@@ -1,0 +1,33 @@
+#!/bin/bash
+# m4b-tool Docker wrapper for ReadarrM4B
+# This script wraps m4b-tool in Docker to avoid PHP compatibility issues
+
+# Extract the input directory from the first non-option argument
+INPUT_DIR=""
+for arg in "$@"; do
+    if [[ ! "$arg" =~ ^- ]] && [[ -d "$arg" ]]; then
+        INPUT_DIR="$(realpath "$arg")"
+        break
+    fi
+done
+
+if [ -z "$INPUT_DIR" ]; then
+    # If no directory found, use current directory
+    INPUT_DIR="$(pwd)"
+fi
+
+# Replace the input path in arguments with /mnt
+ARGS=()
+for arg in "$@"; do
+    if [[ "$arg" == "$INPUT_DIR" ]]; then
+        ARGS+=("/mnt")
+    elif [[ "$arg" == "$INPUT_DIR"* ]]; then
+        # Replace input directory prefix with /mnt
+        ARGS+=("${arg/$INPUT_DIR/\/mnt}")
+    else
+        ARGS+=("$arg")
+    fi
+done
+
+# Run docker with proper volume mounting
+docker run --rm -v "$INPUT_DIR":/mnt sandreas/m4b-tool:latest "${ARGS[@]}"
