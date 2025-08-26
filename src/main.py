@@ -46,12 +46,12 @@ class WebhookHandler(BaseHTTPRequestHandler):
             
             # Extract data from Readarr webhook format
             author_data = data.get('author', {})
-            books_data = data.get('books', [])
+            book_data = data.get('book', {})
             event_type = data.get('eventType', 'Import')
             
             author_name = author_data.get('name')
             author_path = author_data.get('path')
-            book_title = books_data[0].get('title') if books_data else None
+            book_title = book_data.get('title')
             
             self.server.webhook_logger.info(f"Received webhook - Author: {author_name}, Book: {book_title}, Event: {event_type}")
             
@@ -64,11 +64,24 @@ class WebhookHandler(BaseHTTPRequestHandler):
                 self._send_json_response(400, {'error': 'Missing author name or book title in webhook'})
                 return
             
+            # Get the directory path from the first book file
+            book_files = data.get('bookFiles', [])
+            book_directory = None
+            if book_files:
+                first_file_path = book_files[0].get('path', '')
+                if first_file_path:
+                    book_directory = str(Path(first_file_path).parent)
+            
+            if not book_directory:
+                self._send_json_response(400, {'error': 'Could not determine book directory from bookFiles'})
+                return
+            
             # Queue conversion
             metadata = {
                 'author_name': author_name,
                 'book_title': book_title,
                 'author_path': author_path,
+                'book_directory': book_directory,
                 'is_test': False
             }
             
@@ -94,7 +107,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
     async def _convert_audiobook(self, metadata: dict):
         """Convert audiobook asynchronously"""
         try:
-            book_path = Path(self.server.config.audiobooks_path) / metadata['author_name'] / metadata['book_title']
+            book_path = Path(metadata['book_directory'])
             success = await self.server.converter.convert_audiobook(book_path, metadata)
             
             if success:
